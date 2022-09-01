@@ -10,21 +10,36 @@
     <canvas id="canvas" width="1312" height="1184">
       Hola tu navegador no funciona
     </canvas>
+    <div id="count_up_timer" style="float: right">00:00:0</div>
     <script type="text/javascript">
 var cv = null;
 var ctx = null;
 var press = false;
-var direccion = 'down';
+var direccion = 'up';
 var player1 = null;
-var score = 0;
-var speed = 5;
+var speed = 2;
 var pause = false;
 var piso = new Image();
 var pisos = [];
 var pared = [];
 var guy = new Image();
 var wall = new Image();
-var fx = new Audio();
+var fondo = new Audio();
+var victory = new Audio();
+var meta = null;
+var alterMeta = null;
+var inicio = true;
+var timerVariable = setInterval(countUpTimer, 1000);
+var totalSeconds = 0;
+var ganar = false;
+
+function countUpTimer() {
+  ++totalSeconds;
+  var hour = Math.floor(totalSeconds / 3600);
+  var minute = Math.floor((totalSeconds - hour * 3600) / 60);
+  var seconds = totalSeconds - (hour * 3600 + minute * 60);
+  document.getElementById("count_up_timer").innerHTML = hour + ":" + minute + ":" + seconds;
+}
 
 document.addEventListener('keydown', onKeyDown);
 
@@ -51,19 +66,31 @@ function onKeyDown(e) {
     direccion = 'right';
   }
 
-  if (e.keyCode == 32) {
-    pause = (pause) ? false : true;
+  if (e.key == 'i' || e.key == 'I') {
+    if (inicio == true) {
+      inicio = false;
+      timerVariable = setInterval(countUpTimer, 1000);
+    }
+  }
+
+  if (e.key == 'p' || e.key == 'P') {
+    if (pause == true) {
+      pause = false;
+      timerVariable = setInterval(countUpTimer, 1000);
+    } else {
+      pause = true;
+      clearInterval(timerVariable);
+    }
   }
 }
 
 function paint() {
-
   window.requestAnimationFrame(paint);
-  ctx.fillStyle = 'pink';
+  meta.paint(ctx);
+  alterMeta.paint(ctx);
   ctx.fillRect(0, 0, 1312, 1184);
   ctx.fillStyle = 'black';
   ctx.font = '20px Arial';
-  ctx.fillText('Score:' + score, 5, 20);
   for (let i = 0; i < pisos.length; i++) {
     pisos[i].paint(ctx);
     ctx.drawImage(piso, pisos[i].x, pisos[i].y);
@@ -77,13 +104,31 @@ function paint() {
   }
 
   if (pause) {
+    fondo.pause();
     ctx.fillStyle = 'rgba(0 ,0 ,0 ,0.5)';
     ctx.fillRect(0, 0, 1312, 1184);
     ctx.fillStyle = 'white';
     ctx.fillText('P A U S E', 600, 592);
-  } else {
+    clearInterval(timerVariable);
+  }   else if (inicio) {
+    ctx.fillStyle = 'rgba(0 ,0 ,0 ,0.5)';
+    ctx.fillRect(0, 0, 1312, 1184);
+    ctx.fillStyle = 'white';
+    ctx.fillText('Presiona I para iniciar', 500, 592);
+  } else if (ganar) {
+    fondo.pause();
+    ctx.fillStyle = 'rgba(0 ,0 ,0 ,0.5)';
+    ctx.fillRect(0, 0, 1312, 1184);
+    ctx.fillStyle = 'white';
+    ctx.fillText('G A N A S T E ! ! !', 560, 592);
+    speed = 0;
+    clearInterval(timerVariable);
+    victory.play();
+  }else {
+    fondo.play();
     update();
   }
+
 }
 
 function update() {
@@ -145,6 +190,10 @@ function update() {
 
     }
   }
+
+  if (player1.intersects(meta) || player1.intersects(alterMeta)) {
+    ganar = true;
+  }
 }
 
 function Cuadro(x, y, w, h, c) {
@@ -180,6 +229,9 @@ function run() {
   cv = document.getElementById('canvas');
   ctx = cv.getContext('2d');
   player1 = new Cuadro(1248, 32, 20, 20, 'red');
+  meta = new Cuadro(0, 32, 20, 32, 'red');
+  alterMeta = new Cuadro(0, 1120, 20, 32, 'red');
+
   for (let i = 0; i < 41; i++) {
     for (let j = 0; j < 37; j++) {
       if (i == 40 || j == 0 || j == 36 || (i == 0 && j != 1 && j != 35)) {
@@ -461,7 +513,9 @@ function run() {
   piso.src = 'piso.png';
   guy.src = 'guyDown.png';
   wall.src = 'wall.png';
-  fx.src = 'fx.mp3';
+  fondo.src = 'fondo.mp3';
+  victory.src = 'victoria.mp3'
+  clearInterval(timerVariable);
   paint();
 }
 
